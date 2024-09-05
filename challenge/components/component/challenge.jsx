@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
-export function Task() {
+export function Challenge() {
   const [darkMode, setDarkMode] = useState(false)
   const [tasks, setTasks] = useState({
     Srivani: [
