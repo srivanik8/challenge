@@ -218,7 +218,7 @@ export function Task() {
             {Object.entries(tasks).map(([name, userData]) => (
               <Card key={name} className="rounded-lg overflow-hidden">
                 <CardHeader className="flex flex-row justify-between items-center">
-                  <h3 className="text-lg font-semibold">{name}'s Tasks</h3>
+                  <h3 className="text-lg font-semibold">{name} &apos;s Tasks</h3>
                   <Button 
                     size="sm" 
                     onClick={() => openAddTaskModal(name)} 
