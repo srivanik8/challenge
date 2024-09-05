@@ -25,7 +25,8 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 export function Task() {
   const [darkMode, setDarkMode] = useState(false)
@@ -48,12 +49,13 @@ export function Task() {
       { id: 9, text: "Prepare presentation", completed: false },
     ],
   })
-  const addTask = (name, text) => {
-    setTasks((prevTasks) => ({
-      ...prevTasks,
-      [name]: [...prevTasks[name], { id: prevTasks[name].length + 1, text, completed: false }],
-    }))
-  }
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [newTaskText, setNewTaskText] = useState("")
+  const [editTaskText, setEditTaskText] = useState("")
+  const [currentUser, setCurrentUser] = useState("")
+  const [editingTask, setEditingTask] = useState(null)
+
   const toggleTaskCompletion = (name, id) => {
     setTasks((prevTasks) => ({
       ...prevTasks,
@@ -62,20 +64,66 @@ export function Task() {
       ),
     }))
   }
+
   const deleteTask = (name, id) => {
     setTasks((prevTasks) => ({
       ...prevTasks,
       [name]: prevTasks[name].filter((task) => task.id !== id),
     }))
   }
-  const editTask = (name, id, newText) => {
-    setTasks((prevTasks) => ({
-      ...prevTasks,
-      [name]: prevTasks[name].map((task) => (task.id === id ? { ...task, text: newText } : task)),
-    }))
+
+  const openAddTaskModal = (name) => {
+    setCurrentUser(name)
+    setIsAddModalOpen(true)
   }
+
+  const closeAddTaskModal = () => {
+    setIsAddModalOpen(false)
+    setNewTaskText("")
+    setCurrentUser("")
+  }
+
+  const addTask = () => {
+    if (newTaskText.trim() !== "") {
+      setTasks((prevTasks) => ({
+        ...prevTasks,
+        [currentUser]: [
+          ...prevTasks[currentUser],
+          { id: Date.now(), text: newTaskText, completed: false },
+        ],
+      }))
+      closeAddTaskModal()
+    }
+  }
+
+  const openEditTaskModal = (name, task) => {
+    setCurrentUser(name)
+    setEditingTask(task)
+    setEditTaskText(task.text)
+    setIsEditModalOpen(true)
+  }
+
+  const closeEditTaskModal = () => {
+    setIsEditModalOpen(false)
+    setEditTaskText("")
+    setCurrentUser("")
+    setEditingTask(null)
+  }
+
+  const editTask = () => {
+    if (editTaskText.trim() !== "") {
+      setTasks((prevTasks) => ({
+        ...prevTasks,
+        [currentUser]: prevTasks[currentUser].map((task) =>
+          task.id === editingTask.id ? { ...task, text: editTaskText } : task
+        ),
+      }))
+      closeEditTaskModal()
+    }
+  }
+
   return (
-    (<div className={`flex flex-col min-h-screen w-full ${darkMode ? "dark" : ""}`}>
+    <div className={`flex flex-col min-h-screen w-full ${darkMode ? "dark" : ""}`}>
       <div className="flex-1 bg-card text-card-foreground p-4 sm:p-6 md:p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Leaderboard</h2>
@@ -133,7 +181,7 @@ export function Task() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => addTask(name, `New Task for ${name}`)}>
+                    onClick={() => openAddTaskModal(name)}>
                     <PlusIcon className="h-4 w-4" />
                     <span className="sr-only">Add Task</span>
                   </Button>
@@ -154,7 +202,7 @@ export function Task() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => editTask(name, task.id, `Edited ${task.text}`)}>
+                          onClick={() => openEditTaskModal(name, task)}>
                           <FilePenIcon className="h-4 w-4" />
                           <span className="sr-only">Edit Task</span>
                         </Button>
@@ -171,8 +219,56 @@ export function Task() {
           ))}
         </div>
       </div>
-    </div>)
-  );
+
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white text-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Add New Task for {currentUser}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task" className="text-right">
+                Task
+              </Label>
+              <Input
+                id="task"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={addTask}>Add Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white text-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Edit Task for {currentUser}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-task" className="text-right">
+                Task
+              </Label>
+              <Input
+                id="edit-task"
+                value={editTaskText}
+                onChange={(e) => setEditTaskText(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={editTask}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
 
 function FilePenIcon(props) {
@@ -277,7 +373,7 @@ function TrashIcon(props) {
       strokeLinejoin="round">
       <path d="M3 6h18" />
       <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
     </svg>)
   );
 }
