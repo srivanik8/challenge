@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    darkMode: ["class"],
+    darkMode: 'class',
     content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -55,6 +55,13 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		}
+  	},
+  	colors: {
+  		gray: {
+  			200: '#E5E7EB',
+  			800: '#1F2937',
+  			700: '#374151', // Adjust this value to match the border color in the image
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],

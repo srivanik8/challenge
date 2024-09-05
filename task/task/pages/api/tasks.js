@@ -1,62 +1,52 @@
-import clientPromise from '../../lib/mongodb'
-import { ObjectId } from 'mongodb'
+import { MongoClient, ObjectId } from 'mongodb'
+
+const uri = process.env.MONGODB_URI
+let client
+
+if (!uri) {
+  throw new Error('Please add your Mongo URI to .env.local')
+}
 
 export default async function handler(req, res) {
   try {
-    const client = await clientPromise
-    const db = client.db("taskmanager")
-    const collection = db.collection("tasks")
+    if (!client) {
+      client = new MongoClient(uri)
+      await client.connect()
+    }
+    
+    const database = client.db("taskmanager")
+    const tasksCollection = database.collection("tasks")
 
     switch (req.method) {
       case 'GET':
-        const tasks = await collection.find({}).toArray()
-        const formattedTasks = tasks.reduce((acc, task) => {
-          if (!acc[task.user]) acc[task.user] = []
-          acc[task.user].push({
-            id: task._id.toString(),
-            text: task.text,
-            completed: task.completed
-          })
-          return acc
-        }, {
-          Srivani: [],
-          Prem: [],
-          Ashish: [],
-          Manish: []
-        })
-        res.json(formattedTasks)
+        const tasks = await tasksCollection.find().toArray()
+        res.status(200).json(tasks)
         break
-
       case 'POST':
-        const newTask = {
-          user: req.body.user,
-          text: req.body.text,
-          completed: false
-        }
-        const result = await collection.insertOne(newTask)
-        res.json({ id: result.insertedId, ...newTask })
+        const newTask = req.body
+        const result = await tasksCollection.insertOne(newTask)
+        res.status(201).json(result)
         break
-
       case 'PUT':
         const { id, ...updateData } = req.body
-        await collection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updateData }
-        )
-        res.json({ success: true })
+        await tasksCollection.updateOne({ _id: new ObjectId(id) }, { $set: updateData })
+        res.status(200).json({ message: 'Task updated successfully' })
         break
-
       case 'DELETE':
-        const { id: deleteId } = req.query
-        await collection.deleteOne({ _id: new ObjectId(deleteId) })
-        res.json({ success: true })
+        if (req.query.id) {
+          await tasksCollection.deleteOne({ _id: new ObjectId(req.query.id) })
+          res.status(200).json({ message: 'Task deleted successfully' })
+        } else {
+          await tasksCollection.deleteMany({})
+          res.status(200).json({ message: 'All tasks deleted successfully' })
+        }
         break
-
       default:
-        res.status(405).end()
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE'])
+        res.status(405).end(`Method ${req.method} Not Allowed`)
     }
   } catch (error) {
-    console.error("API Error:", error)
-    res.status(500).json({ error: 'Internal Server Error' })
+    console.error('API route error:', error)
+    res.status(500).json({ message: error.message })
   }
 }
