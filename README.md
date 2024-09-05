@@ -1,2 +1,18 @@
 ## Productivity challenge
-### A small application made for our whatsapp challenge using next.js , v0 , shadcn-ui library using cursor.ai
+### About
+
+- Tracks productivity for our WhatsApp group challenge
+- Users can add, edit, and delete tasks
+- Tasks automatically reset at midnight
+- Leaderboard shows completed tasks per user
+
+### Tech Stack
+
+- **Next.js**
+- **MongoDB**
+- **shadcn/ui**
+- **v0 by Vercel**
+- **cursor.ai**
+
+
+
