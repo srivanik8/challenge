@@ -19,7 +19,7 @@ To read more about using these font, please visit the Next.js documentation:
 **/
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -31,24 +31,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 export function Task() {
   const [darkMode, setDarkMode] = useState(false)
   const [tasks, setTasks] = useState({
-    Srivani: [
-      { id: 1, text: "Finish project proposal", completed: false },
-      { id: 2, text: "Attend team meeting", completed: false },
-      { id: 3, text: "Review design mockups", completed: false },
-    ],
-    Prem: [
-      { id: 4, text: "Prepare presentation", completed: false },
-      { id: 5, text: "Attend client meeting", completed: false },
-    ],
-    Ashish: [
-      { id: 6, text: "Finish project proposal", completed: false },
-      { id: 7, text: "Attend team meeting", completed: false },
-    ],
-    Manish: [
-      { id: 8, text: "Review design mockups", completed: false },
-      { id: 9, text: "Prepare presentation", completed: false },
-    ],
+    Srivani: [],
+    Prem: [],
+    Ashish: [],
+    Manish: []
   })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [newTaskText, setNewTaskText] = useState("")
@@ -56,20 +45,51 @@ export function Task() {
   const [currentUser, setCurrentUser] = useState("")
   const [editingTask, setEditingTask] = useState(null)
 
-  const toggleTaskCompletion = (name, id) => {
-    setTasks((prevTasks) => ({
-      ...prevTasks,
-      [name]: prevTasks[name].map(
-        (task) => (task.id === id ? { ...task, completed: !task.completed } : task)
-      ),
-    }))
+  useEffect(() => {
+    fetchTasks()
+  }, [])
+
+  const fetchTasks = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/tasks')
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks')
+      }
+      const data = await response.json()
+      setTasks(data)
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error)
+      setError('Failed to load tasks. Please try again later.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const deleteTask = (name, id) => {
-    setTasks((prevTasks) => ({
-      ...prevTasks,
-      [name]: prevTasks[name].filter((task) => task.id !== id),
-    }))
+  const toggleTaskCompletion = async (name, id) => {
+    const task = tasks[name].find(t => t.id === id)
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !task.completed })
+      })
+      if (!response.ok) throw new Error('Failed to update task')
+      fetchTasks()
+    } catch (error) {
+      console.error("Failed to toggle task completion:", error)
+    }
+  }
+
+  const deleteTask = async (name, id) => {
+    try {
+      const response = await fetch(`/api/tasks?id=${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Failed to delete task')
+      fetchTasks()
+    } catch (error) {
+      console.error("Failed to delete task:", error)
+    }
   }
 
   const openAddTaskModal = (name) => {
@@ -83,16 +103,20 @@ export function Task() {
     setCurrentUser("")
   }
 
-  const addTask = () => {
+  const addTask = async () => {
     if (newTaskText.trim() !== "") {
-      setTasks((prevTasks) => ({
-        ...prevTasks,
-        [currentUser]: [
-          ...prevTasks[currentUser],
-          { id: Date.now(), text: newTaskText, completed: false },
-        ],
-      }))
-      closeAddTaskModal()
+      try {
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: currentUser, text: newTaskText })
+        })
+        if (!response.ok) throw new Error('Failed to add task')
+        closeAddTaskModal()
+        fetchTasks()
+      } catch (error) {
+        console.error("Failed to add task:", error)
+      }
     }
   }
 
@@ -110,270 +134,132 @@ export function Task() {
     setEditingTask(null)
   }
 
-  const editTask = () => {
+  const editTask = async () => {
     if (editTaskText.trim() !== "") {
-      setTasks((prevTasks) => ({
-        ...prevTasks,
-        [currentUser]: prevTasks[currentUser].map((task) =>
-          task.id === editingTask.id ? { ...task, text: editTaskText } : task
-        ),
-      }))
-      closeEditTaskModal()
+      try {
+        const response = await fetch('/api/tasks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingTask.id, text: editTaskText })
+        })
+        if (!response.ok) throw new Error('Failed to edit task')
+        closeEditTaskModal()
+        fetchTasks()
+      } catch (error) {
+        console.error("Failed to edit task:", error)
+      }
     }
   }
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>
+  }
+
   return (
-    <div className={`flex flex-col min-h-screen w-full ${darkMode ? "dark" : ""}`}>
-      <div className="flex-1 bg-card text-card-foreground p-4 sm:p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Leaderboard</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
-          {Object.entries(tasks).map(([name, userTasks]) => (
-            <Card
-              key={name}
-              className="bg-card text-card-foreground p-4 sm:p-6 rounded-lg shadow-md">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">{name}</h3>
-                  <div
-                    className="bg-primary px-2 py-1 text-xs font-medium rounded-full text-primary-foreground">
-                    Streak: 0 days
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="mt-4">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Tasks Completed</span>
-                    <span className="text-sm font-medium">
-                      {userTasks.filter((task) => task.completed).length}/{userTasks.length}
-                    </span>
-                  </div>
-                  <Progress
-                    value={(userTasks.filter((task) => task.completed).length / userTasks.length) * 100} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 bg-background p-4 sm:p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">My Tasks</h2>
+    <div className={`min-h-screen w-full ${darkMode ? "dark" : ""}`}>
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Task Manager</h1>
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => setDarkMode(!darkMode)}
-            className="absolute top-4 right-4">
-            <SunMoonIcon className="h-6 w-6" />
-            <span className="sr-only">Toggle dark mode</span>
+          >
+            {darkMode ? "☀️" : "🌙"}
           </Button>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
-          {Object.entries(tasks).map(([name, userTasks]) => (
-            <Card
-              key={name}
-              className="bg-card text-card-foreground p-4 sm:p-6 rounded-lg shadow-md">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">{name}'s Tasks</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openAddTaskModal(name)}>
-                    <PlusIcon className="h-4 w-4" />
-                    <span className="sr-only">Add Task</span>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-4">
-                  {userTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Leaderboard</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(tasks).map(([name, userTasks]) => (
+              <Card key={name}>
+                <CardHeader>
+                  <h3 className="text-lg font-semibold">{name}</h3>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between mb-2">
+                    <span>Tasks Completed</span>
+                    <span>{userTasks.filter(t => t.completed).length} / {userTasks.length}</span>
+                  </div>
+                  <Progress value={(userTasks.filter(t => t.completed).length / userTasks.length) * 100} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Tasks</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Object.entries(tasks).map(([name, userTasks]) => (
+              <Card key={name}>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <h3 className="text-lg font-semibold">{name}'s Tasks</h3>
+                  <Button size="sm" onClick={() => openAddTaskModal(name)}>Add Task</Button>
+                </CardHeader>
+                <CardContent>
+                  {userTasks.map(task => (
+                    <div key={task.id} className="flex items-center justify-between py-2">
+                      <div className="flex items-center">
                         <Checkbox
                           id={`task-${task.id}`}
                           checked={task.completed}
-                          onCheckedChange={() => toggleTaskCompletion(name, task.id)} />
-                        <Label htmlFor={`task-${task.id}`}>{task.text}</Label>
+                          onCheckedChange={() => toggleTaskCompletion(name, task.id)}
+                        />
+                        <Label htmlFor={`task-${task.id}`} className="ml-2">{task.text}</Label>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditTaskModal(name, task)}>
-                          <FilePenIcon className="h-4 w-4" />
-                          <span className="sr-only">Edit Task</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteTask(name, task.id)}>
-                          <TrashIcon className="h-4 w-4" />
-                          <span className="sr-only">Delete Task</span>
-                        </Button>
+                      <div>
+                        <Button variant="ghost" size="sm" onClick={() => openEditTaskModal(name, task)}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteTask(name, task.id)}>Delete</Button>
                       </div>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
 
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-white text-gray-900">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Add New Task for {currentUser}</DialogTitle>
+            <DialogTitle>Add New Task for {currentUser}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="task" className="text-right">
-                Task
-              </Label>
-              <Input
-                id="task"
-                value={newTaskText}
-                onChange={(e) => setNewTaskText(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
+          <div className="py-4">
+            <Input
+              value={newTaskText}
+              onChange={(e) => setNewTaskText(e.target.value)}
+              placeholder="Enter task description"
+            />
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={addTask}>Add Task</Button>
+            <Button onClick={addTask}>Add Task</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-white text-gray-900">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Edit Task for {currentUser}</DialogTitle>
+            <DialogTitle>Edit Task for {currentUser}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-task" className="text-right">
-                Task
-              </Label>
-              <Input
-                id="edit-task"
-                value={editTaskText}
-                onChange={(e) => setEditTaskText(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
+          <div className="py-4">
+            <Input
+              value={editTaskText}
+              onChange={(e) => setEditTaskText(e.target.value)}
+            />
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={editTask}>Save Changes</Button>
+            <Button onClick={editTask}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
-}
-
-function FilePenIcon(props) {
-  return (
-    (<svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10" />
-      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-      <path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z" />
-    </svg>)
-  );
-}
-
-
-function MoonIcon(props) {
-  return (
-    (<svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-    </svg>)
-  );
-}
-
-
-function PlusIcon(props) {
-  return (
-    (<svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>)
-  );
-}
-
-
-function SunMoonIcon(props) {
-  return (
-    (<svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4" />
-      <path d="M12 2v2" />
-      <path d="M12 20v2" />
-      <path d="m4.9 4.9 1.4 1.4" />
-      <path d="m17.7 17.7 1.4 1.4" />
-      <path d="M2 12h2" />
-      <path d="M20 12h2" />
-      <path d="m6.3 17.7-1.4 1.4" />
-      <path d="m19.1 4.9-1.4 1.4" />
-    </svg>)
-  );
-}
-
-
-function TrashIcon(props) {
-  return (
-    (<svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round">
-      <path d="M3 6h18" />
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2" />
-    </svg>)
-  );
 }
