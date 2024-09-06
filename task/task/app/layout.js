@@ -10,6 +10,14 @@ const geistSans = localFont({
   weight: "100 900",
 });
 
+export const metadata = {
+  title: 'Task Manager',
+  description: 'A simple task management application',
+  icons: {
+    icon: '/favicon.ico',
+  },
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
