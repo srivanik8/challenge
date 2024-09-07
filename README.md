@@ -3,7 +3,6 @@
 
 - Tracks productivity for our WhatsApp group challenge
 - Users can add, edit, and delete tasks
-- Tasks automatically reset at midnight
 - Leaderboard shows completed tasks per user
 
 ### Tech Stack
