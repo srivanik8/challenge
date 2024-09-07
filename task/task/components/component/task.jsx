@@ -28,10 +28,10 @@ function LiveClock() {
 
 export function Task() {
   const [tasks, setTasks] = useState({
-    Srivani: { tasks: [], streak: 0, lastCompleted: null },
-    Prem: { tasks: [], streak: 0, lastCompleted: null },
-    Ashish: { tasks: [], streak: 0, lastCompleted: null },
-    Manish: { tasks: [], streak: 0, lastCompleted: null }
+    Srivani: { tasks: [] },
+    Prem: { tasks: [] },
+    Ashish: { tasks: [] },
+    Manish: { tasks: [] }
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -67,15 +67,13 @@ export function Task() {
 
   const formatTasks = (taskData) => {
     const formattedTasks = {
-      Srivani: { tasks: [], streak: 0, lastCompleted: null },
-      Prem: { tasks: [], streak: 0, lastCompleted: null },
-      Ashish: { tasks: [], streak: 0, lastCompleted: null },
-      Manish: { tasks: [], streak: 0, lastCompleted: null }
+      Srivani: { tasks: [] },
+      Prem: { tasks: [] },
+      Ashish: { tasks: [] },
+      Manish: { tasks: [] }
     }
     taskData.forEach(task => {
       formattedTasks[task.user].tasks.push(task)
-      formattedTasks[task.user].streak = task.streak || 0
-      formattedTasks[task.user].lastCompleted = task.lastCompleted || null
     })
     return formattedTasks
   }
@@ -190,11 +188,8 @@ export function Task() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(tasks).map(([name, userData]) => (
               <Card key={name} className="rounded-lg overflow-hidden">
-                <CardHeader className="flex flex-row justify-between items-center">
+                <CardHeader>
                   <h3 className="text-lg font-semibold">{name}</h3>
-                  <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                    Streak: {userData.streak} days
-                  </span>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between mb-2">
